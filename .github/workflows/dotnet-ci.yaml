@@ -1,0 +1,20 @@
+name: dotnet-ci
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '8.0.x'
+    - name: Install .NET MAUI
+      run: dotnet workload install maui
+    - name: Restore dependencies
+      run: dotnet restore ./src/GeneralUpdate.Maui.sln
+    - name: build
+      run: dotnet build ./src/GeneralUpdate.Maui.sln -c Release
