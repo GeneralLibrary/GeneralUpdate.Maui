@@ -15,9 +15,10 @@ public sealed class UpdateFileStore : IUpdateStorageProvider
             : options.DownloadDirectory;
 
         EnsureDirectory(directory);
+        var safeDirectory = directory ?? throw new InvalidOperationException("Failed to resolve update directory.");
 
         var fileName = ResolveFileName(packageInfo);
-        var target = Path.Combine(directory!, fileName);
+        var target = Path.Combine(safeDirectory, fileName);
         var temp = target + options.TemporaryFileExtension;
         return (target, temp);
     }

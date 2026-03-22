@@ -69,17 +69,17 @@ public sealed class AndroidApkInstaller : IApkInstaller
         intent.AddFlags(ActivityFlags.NewTask);
         intent.AddFlags(ActivityFlags.GrantReadUriPermission);
 
-        Android.Net.Uri packageUri;
+        Android.Net.Uri apkUri;
         if (Build.VERSION.SdkInt >= BuildVersionCodes.N)
         {
-            packageUri = FileProvider.GetUriForFile(context, options.FileProviderAuthority, apkFile);
+            apkUri = FileProvider.GetUriForFile(context, options.FileProviderAuthority, apkFile);
         }
         else
         {
-            packageUri = Uri.FromFile(apkFile);
+            apkUri = Uri.FromFile(apkFile);
         }
 
-        intent.SetDataAndType(packageUri, options.MimeType);
+        intent.SetDataAndType(apkUri, options.MimeType);
         context.StartActivity(intent);
 
         return Task.CompletedTask;
