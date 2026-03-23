@@ -90,6 +90,65 @@ public class AndroidBootstrapTests
         Assert.True(failedRaised);
     }
 
+    [Fact]
+    public async Task ExecuteUpdateAsync_Should_ReturnFailure_WhenConcurrentExecutionIsRequested()
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var slowDownloader = new SlowDownloader(gate.Task);
+        var manager = new AndroidBootstrap(
+            slowDownloader,
+            new FakeValidator(new HashValidationResult { IsSuccess = true, ExpectedHash = "A", ActualHash = "A" }),
+            new FakeInstaller(),
+            new UpdateFileStore());
+
+        var package = new UpdatePackageInfo
+        {
+            Version = "2.0.0",
+            DownloadUrl = "https://example.com/app.apk",
+            Sha256 = "A"
+        };
+
+        var options = new UpdateOptions
+        {
+            CurrentVersion = "1.0.0",
+            DownloadDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")),
+            InstallOptions = new AndroidInstallOptions { FileProviderAuthority = "com.test.fileprovider" }
+        };
+
+        var firstExecution = manager.ExecuteUpdateAsync(package, options, CancellationToken.None);
+        await Task.Delay(50);
+
+        var secondExecution = await manager.ExecuteUpdateAsync(package, options, CancellationToken.None);
+
+        gate.SetResult();
+        await firstExecution;
+
+        Assert.False(secondExecution.IsSuccess);
+        Assert.Equal(UpdateFailureReason.Unknown, secondExecution.FailureReason);
+        Assert.Equal("An update execution is already in progress.", secondExecution.Message);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_Should_NotBreak_WhenListenerThrows()
+    {
+        var manager = CreateManager();
+        var package = new UpdatePackageInfo
+        {
+            Version = "2.0.0",
+            DownloadUrl = "https://example.com/app.apk",
+            Sha256 = "ABCDEF"
+        };
+
+        var secondListenerCalled = false;
+        manager.AddListenerValidate += (_, _) => throw new InvalidOperationException("test listener fault");
+        manager.AddListenerValidate += (_, _) => secondListenerCalled = true;
+
+        var result = await manager.ValidateAsync(package, new UpdateOptions { CurrentVersion = "1.0.0" }, CancellationToken.None);
+
+        Assert.True(result.IsUpdateAvailable);
+        Assert.True(secondListenerCalled);
+    }
+
     private static AndroidBootstrap CreateManager()
     {
         return new AndroidBootstrap(
@@ -142,5 +201,22 @@ public class AndroidBootstrapTests
 
         public Task TriggerInstallAsync(string apkFilePath, AndroidInstallOptions options, CancellationToken cancellationToken)
             => Task.CompletedTask;
+    }
+
+    private sealed class SlowDownloader(Task waitTask) : IUpdateDownloader
+    {
+        public async Task<DownloadResult> DownloadAsync(UpdatePackageInfo packageInfo, string targetFilePath, string temporaryFilePath, TimeSpan progressReportInterval, IProgress<DownloadStatistics>? progress, CancellationToken cancellationToken)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(temporaryFilePath)!);
+            await waitTask;
+            await File.WriteAllBytesAsync(temporaryFilePath, [1, 2, 3], cancellationToken);
+            return new DownloadResult
+            {
+                FilePath = targetFilePath,
+                TemporaryFilePath = temporaryFilePath,
+                TotalBytes = 3,
+                UsedResumableDownload = false
+            };
+        }
     }
 }

@@ -10,11 +10,14 @@ namespace GeneralUpdate.Maui.Android.Services;
 /// </summary>
 public sealed class AndroidBootstrap : IAndroidBootstrap
 {
+    private const string UpdateInProgressMessage = "An update execution is already in progress.";
     private readonly IUpdateDownloader _downloader;
     private readonly IHashValidator _hashValidator;
     private readonly IApkInstaller _apkInstaller;
     private readonly IUpdateStorageProvider _storageProvider;
     private readonly IUpdateLogger _logger;
+    private int _currentState = (int)UpdateState.None;
+    private int _isExecuting;
 
     public AndroidBootstrap(
         IUpdateDownloader downloader,
@@ -38,7 +41,7 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
 
     public event EventHandler<UpdateFailedEventArgs>? AddListenerUpdateFailed;
 
-    public UpdateState CurrentState { get; private set; }
+    public UpdateState CurrentState => (UpdateState)Volatile.Read(ref _currentState);
 
     public Task<UpdateCheckResult> ValidateAsync(UpdatePackageInfo packageInfo, UpdateOptions options, CancellationToken cancellationToken)
     {
@@ -58,7 +61,7 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
             }
 
             ChangeState(UpdateState.UpdateAvailable);
-            AddListenerValidate?.Invoke(this, new ValidateEventArgs(packageInfo));
+            SafeInvoke(AddListenerValidate, new ValidateEventArgs(packageInfo), nameof(AddListenerValidate));
             return Task.FromResult(UpdateCheckResult.UpdateAvailable(packageInfo));
         }
         catch (Exception ex)
@@ -71,6 +74,12 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
 
     public async Task<UpdateExecutionResult> ExecuteUpdateAsync(UpdatePackageInfo packageInfo, UpdateOptions options, CancellationToken cancellationToken)
     {
+        if (Interlocked.CompareExchange(ref _isExecuting, 1, 0) != 0)
+        {
+            NotifyFailure(UpdateFailureReason.Unknown, UpdateInProgressMessage, ex: null, packageInfo);
+            return UpdateExecutionResult.Failure(UpdateFailureReason.Unknown, UpdateInProgressMessage);
+        }
+
         try
         {
             ValidateInputs(packageInfo, options);
@@ -81,7 +90,7 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
 
             var downloadProgress = new Progress<DownloadStatistics>(stats =>
             {
-                AddListenerDownloadProgressChanged?.Invoke(this, new DownloadProgressChangedEventArgs(packageInfo, stats, "Downloading update package."));
+                SafeInvoke(AddListenerDownloadProgressChanged, new DownloadProgressChangedEventArgs(packageInfo, stats, "Downloading update package."), nameof(AddListenerDownloadProgressChanged));
             });
 
             await _downloader.DownloadAsync(
@@ -93,7 +102,7 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
                 cancellationToken).ConfigureAwait(false);
 
             _storageProvider.ReplaceTemporaryWithFinal(temporaryFilePath, targetFilePath);
-            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.DownloadCompleted, targetFilePath));
+            SafeInvoke(AddListenerUpdateCompleted, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.DownloadCompleted, targetFilePath), nameof(AddListenerUpdateCompleted));
 
             ChangeState(UpdateState.Verifying);
             _logger.LogInfo("Starting SHA256 verification for downloaded update package.");
@@ -109,17 +118,17 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
                 throw new InvalidDataException(hashResult.FailureReason ?? "Integrity check failed.");
             }
 
-            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.VerificationCompleted, targetFilePath));
+            SafeInvoke(AddListenerUpdateCompleted, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.VerificationCompleted, targetFilePath), nameof(AddListenerUpdateCompleted));
 
             ChangeState(UpdateState.ReadyToInstall);
 
             ChangeState(UpdateState.Installing);
             _logger.LogInfo("Triggering Android package installer.");
             await _apkInstaller.TriggerInstallAsync(targetFilePath, options.InstallOptions, cancellationToken).ConfigureAwait(false);
-            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.InstallationTriggered, targetFilePath));
+            SafeInvoke(AddListenerUpdateCompleted, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.InstallationTriggered, targetFilePath), nameof(AddListenerUpdateCompleted));
 
             ChangeState(UpdateState.Completed);
-            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.WorkflowCompleted, targetFilePath));
+            SafeInvoke(AddListenerUpdateCompleted, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.WorkflowCompleted, targetFilePath), nameof(AddListenerUpdateCompleted));
 
             return UpdateExecutionResult.Success(targetFilePath);
         }
@@ -136,11 +145,15 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
             NotifyFailure(reason, ex.Message, ex, packageInfo);
             return UpdateExecutionResult.Failure(reason, ex.Message);
         }
+        finally
+        {
+            Interlocked.Exchange(ref _isExecuting, 0);
+        }
     }
 
     private void ChangeState(UpdateState state)
     {
-        CurrentState = state;
+        Interlocked.Exchange(ref _currentState, (int)state);
     }
 
     private static void ValidateInputs(UpdatePackageInfo packageInfo, UpdateOptions options)
@@ -172,7 +185,28 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
     private void NotifyFailure(UpdateFailureReason reason, string message, Exception? ex, UpdatePackageInfo packageInfo)
     {
         _logger.LogError(message, ex);
-        AddListenerUpdateFailed?.Invoke(this, new UpdateFailedEventArgs(reason, message, ex, packageInfo));
+        SafeInvoke(AddListenerUpdateFailed, new UpdateFailedEventArgs(reason, message, ex, packageInfo), nameof(AddListenerUpdateFailed));
+    }
+
+    private void SafeInvoke<TEventArgs>(EventHandler<TEventArgs>? eventHandler, TEventArgs eventArgs, string eventName)
+        where TEventArgs : EventArgs
+    {
+        if (eventHandler is null)
+        {
+            return;
+        }
+
+        foreach (EventHandler<TEventArgs> subscriber in eventHandler.GetInvocationList())
+        {
+            try
+            {
+                subscriber(this, eventArgs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Unhandled exception in {eventName} listener.", ex);
+            }
+        }
     }
 
     private static UpdateFailureReason MapFailureReason(Exception ex)
