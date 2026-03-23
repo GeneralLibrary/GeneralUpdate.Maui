@@ -1,6 +1,6 @@
 ---
-name: Bug report
-about: Report a reproducible bug in GeneralUpdate.Maui
+name: "🐛 Bug report"
+about: "🐛 Report a reproducible bug in GeneralUpdate.Maui"
 title: "[Bug]: "
 labels: ["bug"]
 assignees: []

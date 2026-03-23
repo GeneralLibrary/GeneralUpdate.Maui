@@ -1,6 +1,6 @@
 ---
-name: Blank issue
-about: Open a free-form issue without a structured template
+name: "📝 Blank issue"
+about: "📝 Open a free-form issue without a structured template"
 title: ""
 labels: []
 assignees: []

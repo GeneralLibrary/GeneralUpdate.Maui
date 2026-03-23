@@ -1,6 +1,6 @@
 ---
-name: Refactoring proposal
-about: Propose internal code improvements without changing external behavior
+name: "♻️ Refactoring proposal"
+about: "♻️ Propose internal code improvements without changing external behavior"
 title: "[Refactor]: "
 labels: ["refactor"]
 assignees: []
