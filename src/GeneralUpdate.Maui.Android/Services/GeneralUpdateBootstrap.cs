@@ -4,14 +4,14 @@ using GeneralUpdate.Maui.Android.Platform.Android;
 namespace GeneralUpdate.Maui.Android.Services;
 
 /// <summary>
-/// Creates default <see cref="IAndroidUpdateManager"/> instances with built-in service implementations.
+/// Creates default <see cref="IAndroidBootstrap"/> instances with built-in service implementations.
 /// </summary>
-public static class AndroidUpdateManagerFactory
+public static class GeneralUpdateBootstrap
 {
-    public static IAndroidUpdateManager CreateDefault(HttpClient? httpClient = null, IUpdateLogger? logger = null)
+    public static IAndroidBootstrap CreateDefault(HttpClient? httpClient = null, IUpdateLogger? logger = null)
     {
         var client = httpClient ?? new HttpClient();
-        return new AndroidUpdateManager(
+        return new AndroidBootstrap(
             new HttpRangeDownloader(client),
             new Sha256Validator(),
             new AndroidApkInstaller(),

@@ -8,7 +8,7 @@ namespace GeneralUpdate.Maui.Android.Services;
 /// <summary>
 /// Orchestrates update discovery, package download, integrity validation, and APK installation triggering.
 /// </summary>
-public sealed class AndroidUpdateManager : IAndroidUpdateManager
+public sealed class AndroidBootstrap : IAndroidBootstrap
 {
     private readonly IUpdateDownloader _downloader;
     private readonly IHashValidator _hashValidator;
@@ -16,7 +16,7 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
     private readonly IUpdateStorageProvider _storageProvider;
     private readonly IUpdateLogger _logger;
 
-    public AndroidUpdateManager(
+    public AndroidBootstrap(
         IUpdateDownloader downloader,
         IHashValidator hashValidator,
         IApkInstaller apkInstaller,
@@ -30,17 +30,17 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
         _logger = logger ?? NullUpdateLogger.Instance;
     }
 
-    public event EventHandler<UpdateFoundEventArgs>? UpdateFound;
+    public event EventHandler<ValidateEventArgs>? AddListenerValidate;
 
-    public event EventHandler<DownloadProgressChangedEventArgs>? DownloadProgressChanged;
+    public event EventHandler<DownloadProgressChangedEventArgs>? AddListenerDownloadProgressChanged;
 
-    public event EventHandler<UpdateCompletedEventArgs>? UpdateCompleted;
+    public event EventHandler<UpdateCompletedEventArgs>? AddListenerUpdateCompleted;
 
-    public event EventHandler<UpdateFailedEventArgs>? UpdateFailed;
+    public event EventHandler<UpdateFailedEventArgs>? AddListenerUpdateFailed;
 
     public UpdateState CurrentState { get; private set; }
 
-    public Task<UpdateCheckResult> CheckForUpdateAsync(UpdatePackageInfo packageInfo, UpdateOptions options, CancellationToken cancellationToken)
+    public Task<UpdateCheckResult> ValidateAsync(UpdatePackageInfo packageInfo, UpdateOptions options, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ChangeState(UpdateState.Checking);
@@ -58,7 +58,7 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
             }
 
             ChangeState(UpdateState.UpdateAvailable);
-            UpdateFound?.Invoke(this, new UpdateFoundEventArgs(packageInfo));
+            AddListenerValidate?.Invoke(this, new ValidateEventArgs(packageInfo));
             return Task.FromResult(UpdateCheckResult.UpdateAvailable(packageInfo));
         }
         catch (Exception ex)
@@ -81,7 +81,7 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
 
             var downloadProgress = new Progress<DownloadStatistics>(stats =>
             {
-                DownloadProgressChanged?.Invoke(this, new DownloadProgressChangedEventArgs(packageInfo, stats, "Downloading update package."));
+                AddListenerDownloadProgressChanged?.Invoke(this, new DownloadProgressChangedEventArgs(packageInfo, stats, "Downloading update package."));
             });
 
             await _downloader.DownloadAsync(
@@ -93,7 +93,7 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
                 cancellationToken).ConfigureAwait(false);
 
             _storageProvider.ReplaceTemporaryWithFinal(temporaryFilePath, targetFilePath);
-            UpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.DownloadCompleted, targetFilePath));
+            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.DownloadCompleted, targetFilePath));
 
             ChangeState(UpdateState.Verifying);
             _logger.LogInfo("Starting SHA256 verification for downloaded update package.");
@@ -109,17 +109,17 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
                 throw new InvalidDataException(hashResult.FailureReason ?? "Integrity check failed.");
             }
 
-            UpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.VerificationCompleted, targetFilePath));
+            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.VerificationCompleted, targetFilePath));
 
             ChangeState(UpdateState.ReadyToInstall);
 
             ChangeState(UpdateState.Installing);
             _logger.LogInfo("Triggering Android package installer.");
             await _apkInstaller.TriggerInstallAsync(targetFilePath, options.InstallOptions, cancellationToken).ConfigureAwait(false);
-            UpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.InstallationTriggered, targetFilePath));
+            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.InstallationTriggered, targetFilePath));
 
             ChangeState(UpdateState.Completed);
-            UpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.WorkflowCompleted, targetFilePath));
+            AddListenerUpdateCompleted?.Invoke(this, new UpdateCompletedEventArgs(packageInfo, UpdateCompletionStage.WorkflowCompleted, targetFilePath));
 
             return UpdateExecutionResult.Success(targetFilePath);
         }
@@ -172,7 +172,7 @@ public sealed class AndroidUpdateManager : IAndroidUpdateManager
     private void NotifyFailure(UpdateFailureReason reason, string message, Exception? ex, UpdatePackageInfo packageInfo)
     {
         _logger.LogError(message, ex);
-        UpdateFailed?.Invoke(this, new UpdateFailedEventArgs(reason, message, ex, packageInfo));
+        AddListenerUpdateFailed?.Invoke(this, new UpdateFailedEventArgs(reason, message, ex, packageInfo));
     }
 
     private static UpdateFailureReason MapFailureReason(Exception ex)

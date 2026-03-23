@@ -7,10 +7,10 @@ using Xunit;
 
 namespace GeneralUpdate.Maui.Android.Tests;
 
-public class AndroidUpdateManagerTests
+public class AndroidBootstrapTests
 {
     [Fact]
-    public async Task CheckForUpdateAsync_Should_ReportUpdateAvailable_WhenVersionIsNewer()
+    public async Task ValidateAsync_Should_ReportUpdateAvailable_WhenVersionIsNewer()
     {
         var manager = CreateManager();
         var package = new UpdatePackageInfo
@@ -21,9 +21,9 @@ public class AndroidUpdateManagerTests
         };
 
         var raised = false;
-        manager.UpdateFound += (_, args) => raised = args.PackageInfo.Version == "2.0.0";
+        manager.AddListenerValidate += (_, args) => raised = args.PackageInfo.Version == "2.0.0";
 
-        var result = await manager.CheckForUpdateAsync(package, new UpdateOptions { CurrentVersion = "1.0.0" }, CancellationToken.None);
+        var result = await manager.ValidateAsync(package, new UpdateOptions { CurrentVersion = "1.0.0" }, CancellationToken.None);
 
         Assert.True(result.IsUpdateAvailable);
         Assert.True(raised);
@@ -31,7 +31,7 @@ public class AndroidUpdateManagerTests
     }
 
     [Fact]
-    public async Task CheckForUpdateAsync_Should_ReturnNoUpdate_WhenVersionIsNotNewer()
+    public async Task ValidateAsync_Should_ReturnNoUpdate_WhenVersionIsNotNewer()
     {
         var manager = CreateManager();
         var package = new UpdatePackageInfo
@@ -41,7 +41,7 @@ public class AndroidUpdateManagerTests
             Sha256 = "ABCDEF"
         };
 
-        var result = await manager.CheckForUpdateAsync(package, new UpdateOptions { CurrentVersion = "1.0.0" }, CancellationToken.None);
+        var result = await manager.ValidateAsync(package, new UpdateOptions { CurrentVersion = "1.0.0" }, CancellationToken.None);
 
         Assert.False(result.IsUpdateAvailable);
         Assert.Equal(UpdateState.None, manager.CurrentState);
@@ -59,7 +59,7 @@ public class AndroidUpdateManagerTests
             FailureReason = "SHA mismatch"
         });
 
-        var manager = new AndroidUpdateManager(
+        var manager = new AndroidBootstrap(
             fakeDownloader,
             fakeValidator,
             new FakeInstaller(),
@@ -76,7 +76,7 @@ public class AndroidUpdateManagerTests
         Directory.CreateDirectory(tempDir);
 
         var failedRaised = false;
-        manager.UpdateFailed += (_, e) => failedRaised = e.Reason == UpdateFailureReason.IntegrityCheckFailed;
+        manager.AddListenerUpdateFailed += (_, e) => failedRaised = e.Reason == UpdateFailureReason.IntegrityCheckFailed;
 
         var result = await manager.ExecuteUpdateAsync(package, new UpdateOptions
         {
@@ -90,9 +90,9 @@ public class AndroidUpdateManagerTests
         Assert.True(failedRaised);
     }
 
-    private static AndroidUpdateManager CreateManager()
+    private static AndroidBootstrap CreateManager()
     {
-        return new AndroidUpdateManager(
+        return new AndroidBootstrap(
             new FakeDownloader(),
             new FakeValidator(new HashValidationResult
             {

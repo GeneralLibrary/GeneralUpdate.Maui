@@ -5,9 +5,9 @@ namespace GeneralUpdate.Maui.Android.Events;
 /// <summary>
 /// Provides data for update discovery notifications.
 /// </summary>
-public sealed class UpdateFoundEventArgs : EventArgs
+public sealed class ValidateEventArgs : EventArgs
 {
-    public UpdateFoundEventArgs(UpdatePackageInfo packageInfo)
+    public ValidateEventArgs(UpdatePackageInfo packageInfo)
     {
         PackageInfo = packageInfo;
     }
