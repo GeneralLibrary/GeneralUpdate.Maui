@@ -7,6 +7,7 @@ public enum UpdateFailureReason
 {
     Unknown,
     InvalidInput,
+    AlreadyInProgress,
     Network,
     Download,
     FileAccess,

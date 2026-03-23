@@ -76,8 +76,8 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
     {
         if (Interlocked.CompareExchange(ref _isExecuting, 1, 0) != 0)
         {
-            NotifyFailure(UpdateFailureReason.Unknown, UpdateInProgressMessage, ex: null, packageInfo);
-            return UpdateExecutionResult.Failure(UpdateFailureReason.Unknown, UpdateInProgressMessage);
+            NotifyFailure(UpdateFailureReason.AlreadyInProgress, UpdateInProgressMessage, ex: null, packageInfo);
+            return UpdateExecutionResult.Failure(UpdateFailureReason.AlreadyInProgress, UpdateInProgressMessage);
         }
 
         try
