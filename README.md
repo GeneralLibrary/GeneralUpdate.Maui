@@ -116,6 +116,5 @@ if (check.IsUpdateAvailable)
 
 ## 联系方式
 
-- 维护者：`{{Maintainer Name}}`
-- 邮箱：`{{Contact Email}}`
+- 维护者：`Juster Zhu`
 - 问题反馈：<https://github.com/{{GitHub Owner}}/{{Repository Name}}/issues>
