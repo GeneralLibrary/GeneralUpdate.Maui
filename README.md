@@ -1,9 +1,9 @@
 # GeneralUpdate.Maui
 
-[![Stars](https://img.shields.io/github/stars/{{GitHub Owner}}/{{Repository Name}}?style=flat-square)](https://github.com/{{GitHub Owner}}/{{Repository Name}}/stargazers)
-[![Forks](https://img.shields.io/github/forks/{{GitHub Owner}}/{{Repository Name}}?style=flat-square)](https://github.com/{{GitHub Owner}}/{{Repository Name}}/network/members)
-[![License](https://img.shields.io/github/license/{{GitHub Owner}}/{{Repository Name}}?style=flat-square)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-{{Version}}-blue?style=flat-square)](https://github.com/{{GitHub Owner}}/{{Repository Name}}/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/GeneralLibrary/GeneralUpdate.Avalonia?style=flat-square)](https://github.com/GeneralLibrary/GeneralUpdate.Avalonia/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/GeneralLibrary/GeneralUpdate.Avalonia?style=flat-square)](https://github.com/GeneralLibrary/GeneralUpdate.Avalonia/network/members)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](./LICENSE)
+[![NuGet](https://img.shields.io/nuget/v/GeneralUpdate.Avalonia.Android?style=flat-square)](https://www.nuget.org/packages/GeneralUpdate.Avalonia.Android/)
 
 [English](./README-EN.md)
 
