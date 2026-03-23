@@ -2,10 +2,12 @@ using GeneralUpdate.Maui.Android.Abstractions;
 using GeneralUpdate.Maui.Android.Models;
 
 #if ANDROID
-using Android.Content;
-using Android.OS;
+using AndroidApp = Android.App;
+using AndroidContent = Android.Content;
+using AndroidNet = Android.Net;
+using AndroidOS = Android.OS;
 using AndroidX.Core.Content;
-using Java.IO;
+using JavaFile = Java.IO.File;
 #endif
 
 namespace GeneralUpdate.Maui.Android.Platform.Android;
@@ -18,12 +20,12 @@ public sealed class AndroidApkInstaller : IApkInstaller
     public bool CanRequestPackageInstalls()
     {
 #if ANDROID
-        if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+        if (AndroidOS.Build.VERSION.SdkInt < AndroidOS.BuildVersionCodes.O)
         {
             return true;
         }
 
-        var context = Android.App.Application.Context;
+        var context = AndroidApp.Application.Context;
         return context.PackageManager?.CanRequestPackageInstalls() ?? false;
 #else
         return false;
@@ -54,7 +56,7 @@ public sealed class AndroidApkInstaller : IApkInstaller
 
         if (!System.IO.File.Exists(apkFilePath))
         {
-            throw new FileNotFoundException("APK file was not found.", apkFilePath);
+            throw new System.IO.FileNotFoundException("APK file was not found.", apkFilePath);
         }
 
         if (!CanRequestPackageInstalls())
@@ -62,21 +64,21 @@ public sealed class AndroidApkInstaller : IApkInstaller
             throw new InvalidOperationException("App is not allowed to request package installs. Grant 'install unknown apps' permission in system settings.");
         }
 
-        var context = Android.App.Application.Context;
-        var apkFile = new File(apkFilePath);
+        var context = AndroidApp.Application.Context;
+        var apkFile = new JavaFile(apkFilePath);
 
-        using var intent = new Intent(Intent.ActionView);
-        intent.AddFlags(ActivityFlags.NewTask);
-        intent.AddFlags(ActivityFlags.GrantReadUriPermission);
+        using var intent = new AndroidContent.Intent(AndroidContent.Intent.ActionView);
+        intent.AddFlags(AndroidContent.ActivityFlags.NewTask);
+        intent.AddFlags(AndroidContent.ActivityFlags.GrantReadUriPermission);
 
-        Android.Net.Uri apkUri;
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.N)
+        AndroidNet.Uri apkUri;
+        if (AndroidOS.Build.VERSION.SdkInt >= AndroidOS.BuildVersionCodes.N)
         {
             apkUri = FileProvider.GetUriForFile(context, options.FileProviderAuthority, apkFile);
         }
         else
         {
-            apkUri = Uri.FromFile(apkFile);
+            apkUri = AndroidNet.Uri.FromFile(apkFile);
         }
 
         intent.SetDataAndType(apkUri, options.MimeType);
