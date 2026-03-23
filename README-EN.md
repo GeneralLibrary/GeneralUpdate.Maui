@@ -1,9 +1,9 @@
 # GeneralUpdate.Maui
 
-[![Stars](https://img.shields.io/github/stars/{{GitHub Owner}}/{{Repository Name}}?style=flat-square)](https://github.com/{{GitHub Owner}}/{{Repository Name}}/stargazers)
-[![Forks](https://img.shields.io/github/forks/{{GitHub Owner}}/{{Repository Name}}?style=flat-square)](https://github.com/{{GitHub Owner}}/{{Repository Name}}/network/members)
-[![License](https://img.shields.io/github/license/{{GitHub Owner}}/{{Repository Name}}?style=flat-square)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-{{Version}}-blue?style=flat-square)](https://github.com/{{GitHub Owner}}/{{Repository Name}}/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/GeneralLibrary/GeneralUpdate.Maui?style=flat-square)](https://github.com/GeneralLibrary/GeneralUpdate.Maui/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/GeneralLibrary/GeneralUpdate.Maui?style=flat-square)](https://github.com/GeneralLibrary/GeneralUpdate.Maui/network/members)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](./LICENSE)
+[![NuGet](https://img.shields.io/nuget/v/GeneralUpdate.Maui.Android?style=flat-square)](https://www.nuget.org/packages/GeneralUpdate.Maui.Android/)
 
 [简体中文](./README.md)
 
@@ -11,39 +11,49 @@
 
 ## Introduction
 
-**GeneralUpdate.Maui** is an auto-update capability library for the .NET MAUI ecosystem, designed to provide a standardized, extensible, and maintainable update workflow.
+`GeneralUpdate.Maui` is an update capabilities repository for .NET MAUI applications. Its current core module, `GeneralUpdate.Maui.Android`, provides a UI-free Android auto-update orchestration pipeline targeting `net10.0-android` for .NET MAUI apps.
 
-The project currently focuses on Android and provides a UI-less update orchestration core that can be integrated into enterprise apps, utility libraries, component libraries, and business systems.
+The project breaks the update workflow into composable abstractions, so you can replace version comparison, downloading, hash validation, installer launching, logging, and event dispatching based on your architecture.
 
 ## Core Features
 
-- **Update validation**: Supports version checks and update eligibility validation.
-- **Resumable download**: Implements resumable package downloads based on HTTP Range.
-- **Integrity verification**: Built-in SHA256 verification for package integrity and safety.
-- **Installer triggering**: Supports Android `FileProvider` and system installer intents.
-- **Event-driven workflow**: Exposes lifecycle and download-statistics events for monitoring and extension.
+- **UI-free Android update core**: Host applications fully control dialogs, progress, and error presentation.  
+- **End-to-end update flow**: validation → resumable download → SHA-256 verification → installer launch.  
+- **Extensible architecture**: `IVersionComparer`, `IUpdateDownloader`, `IHashValidator`, `IApkInstaller`, and more are replaceable.  
+- **Resumable downloading**: sidecar metadata + streaming writes for better reliability on unstable networks.  
+- **Unified event model**: built-in validation, progress, completion, and failure events for UI/log integration.  
 
 ## Quick Start
 
-### 1. Prerequisites
+### Prerequisites
 
-- .NET SDK: `{{.NET SDK Version}}` (recommended `10.0` or later)
-- Target platform: `{{Target Platform}}` (for example, `Android`)
-- Optional IDE: `{{IDE}}` (for example, Visual Studio / JetBrains Rider)
+- .NET SDK: `10.0+`
+- Platform: `Android (net10.0-android)`
+- .NET MAUI: `10.0+`
+- Git: `2.30+`
 
-### 2. Installation
+### Installation
 
-```bash
-dotnet add {{Project Path}} package {{Package Name}} --version {{Package Version}}
-```
-
-Or use your project's standard dependency management command:
+1. Clone the repository
 
 ```bash
-{{Installation Command}}
+git clone https://github.com/GeneralLibrary/GeneralUpdate.Maui.git
+cd GeneralUpdate.Maui
 ```
 
-### 3. Basic Usage
+2. Install dependencies (NuGet package consumption)
+
+```bash
+dotnet add package GeneralUpdate.Maui.Android
+```
+
+3. Build and test locally (repository development)
+
+```bash
+dotnet test src/GeneralUpdate.Maui.Android.Tests/GeneralUpdate.Maui.Android.Tests.csproj -p:TargetFramework=net10.0 -p:TargetFrameworks=net10.0
+```
+
+### Basic Usage
 
 ```csharp
 using GeneralUpdate.Maui.Android.Models;
@@ -58,20 +68,20 @@ bootstrap.AddListenerValidate += (_, e) =>
 
 var package = new UpdatePackageInfo
 {
-    Version = "{{Target Version}}",
-    VersionName = "{{Target Version Name}}",
-    ReleaseNotes = "{{Release Notes}}",
-    DownloadUrl = "{{Download Url}}",
-    Sha256 = "{{SHA256 Value}}",
-    PackageSize = {{Package Size}}
+    Version = "2.3.0",
+    VersionName = "2.3.0",
+    ReleaseNotes = "Fixes known issues and improves stability.",
+    DownloadUrl = "https://example.com/app-release.apk",
+    Sha256 = "REPLACE_WITH_ACTUAL_SHA256_HASH",
+    PackageSize = 1024 * 1024 * 50
 };
 
 var options = new UpdateOptions
 {
-    CurrentVersion = "{{Current Version}}",
+    CurrentVersion = "2.2.1",
     InstallOptions = new AndroidInstallOptions
     {
-        FileProviderAuthority = "{{FileProvider Authority}}"
+        FileProviderAuthority = "com.example.app.generalupdate.fileprovider"
     }
 };
 
@@ -85,30 +95,27 @@ if (check.IsUpdateAvailable)
 ## Directory Structure
 
 ```text
-{{Repository Name}}/
+GeneralUpdate.Maui/
+├── src/
+│   ├── GeneralUpdate.Maui.Android/       # Android auto-update core library
+│   └── GeneralUpdate.Maui.Android.Tests/ # Unit tests
 ├── README.md
 ├── README-EN.md
-├── LICENSE
-└── src/
-    ├── GeneralUpdate.Maui.Android/
-    └── GeneralUpdate.Maui.Android.Tests/
+└── LICENSE
 ```
 
 ## Contributing
 
-Contributions are welcome through the standard GitHub collaboration workflow:
+Contributions are welcome through the standard GitHub workflow:
 
-1. Fork this repository.
-2. Create a feature branch: `git checkout -b feature/{{feature-name}}`.
-3. Follow the project coding standards and complete required tests.
-4. Commit your changes: `git commit -m "feat: {{change summary}}"`.
-5. Push your branch and open a Pull Request.
-
-Before submitting a PR, please make sure:
-
-- your change scope is clear and focused;
-- related docs and examples are updated;
-- no new security risks or breaking behavior are introduced.
+1. Fork this repository and create a branch from `main`: `feature/your-change`.  
+2. Keep changes focused and follow existing style and naming conventions.  
+3. Run the existing tests before submitting:
+   ```bash
+   dotnet test src/GeneralUpdate.Maui.Android.Tests/GeneralUpdate.Maui.Android.Tests.csproj -p:TargetFramework=net10.0 -p:TargetFrameworks=net10.0
+   ```
+4. Open a Pull Request describing motivation, implementation details, and compatibility impact.  
+5. Iterate based on review feedback, then merge and delete the branch.  
 
 ## License
 
@@ -116,6 +123,6 @@ This project is licensed under the **Apache License 2.0**. See [LICENSE](./LICEN
 
 ## Contact
 
-- Maintainer: `{{Maintainer Name}}`
-- Email: `{{Contact Email}}`
-- Issue Tracker: <https://github.com/{{GitHub Owner}}/{{Repository Name}}/issues>
+- Repository: https://github.com/GeneralLibrary/GeneralUpdate.Maui
+- Issue Tracker: https://github.com/GeneralLibrary/GeneralUpdate.Maui/issues
+- Discussions: https://github.com/GeneralLibrary/GeneralUpdate.Maui/discussions
