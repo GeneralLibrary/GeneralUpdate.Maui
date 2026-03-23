@@ -4,14 +4,13 @@ This project is a subproject of GeneralUpdate, designed to be compatible with .N
 
 | Platform | Support | Framework version |
 | -------- | ------- | ----------------- |
-| Android  | Yes     | .NET8             |
+| Android  | Yes     | .NET10            |
 | Windows  | -       | -                 |
 | iOS      | -       | -                 |
 | Mac      | -       | -                 |
 
 ## Projects
 
-- `GeneralUpdate.Maui.OSS`: Existing OSS-based MAUI update package.
 - `GeneralUpdate.Maui.Android`: UI-less Android auto-update core for .NET MAUI, including:
   - Update discovery from external metadata
   - Resumable APK download via `HttpClient` and HTTP range requests

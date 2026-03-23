@@ -11,10 +11,12 @@ jobs:
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '10.0.x'
     - name: Install .NET MAUI
       run: dotnet workload install maui
     - name: Restore dependencies
       run: dotnet restore ./src/GeneralUpdate.Maui.sln
     - name: build
       run: dotnet build ./src/GeneralUpdate.Maui.sln -c Release
+    - name: test
+      run: dotnet test ./src/GeneralUpdate.Maui.Android.Tests/GeneralUpdate.Maui.Android.Tests.csproj -c Release -p:TargetFramework=net10.0

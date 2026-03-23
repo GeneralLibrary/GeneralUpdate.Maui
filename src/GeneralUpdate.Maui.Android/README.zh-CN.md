@@ -17,6 +17,19 @@
 
 在 MAUI 应用中引用该项目/包，并配置 Android `FileProvider` authority。
 
+### 依赖注入（DI）
+
+```csharp
+using GeneralUpdate.Maui.Android.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+var services = new ServiceCollection();
+services.AddGeneralUpdateMauiAndroid();
+
+using var provider = services.BuildServiceProvider();
+var bootstrap = provider.GetRequiredService<IAndroidBootstrap>();
+```
+
 ## 快速开始
 
 ```csharp

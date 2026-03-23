@@ -17,6 +17,19 @@ UI-less Android auto-update core for .NET MAUI, focused on reusable update orche
 
 Reference the project/package in your MAUI app and configure Android `FileProvider` authority.
 
+### Dependency Injection (DI)
+
+```csharp
+using GeneralUpdate.Maui.Android.Services;
+using Microsoft.Extensions.DependencyInjection;
+
+var services = new ServiceCollection();
+services.AddGeneralUpdateMauiAndroid();
+
+using var provider = services.BuildServiceProvider();
+var bootstrap = provider.GetRequiredService<IAndroidBootstrap>();
+```
+
 ## Quick Start
 
 ```csharp
