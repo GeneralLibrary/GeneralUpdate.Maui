@@ -34,6 +34,16 @@ public static class GeneralUpdateBootstrap
         return services;
     }
 
+    /// <summary>
+    /// Creates a default <see cref="IAndroidBootstrap"/> with built-in service implementations.
+    /// </summary>
+    /// <param name="httpClient">Optional external HttpClient. Ignored when <paramref name="httpOptions"/> is provided.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="httpOptions">
+    /// Optional HTTP configuration (SSL, proxy, auth, timeouts).
+    /// When set, an internal HttpClient is constructed from these options
+    /// and <paramref name="httpClient"/> is not used.
+    /// </param>
     public static IAndroidBootstrap CreateDefault(
         HttpClient? httpClient = null,
         IUpdateLogger? logger = null,
@@ -42,6 +52,7 @@ public static class GeneralUpdateBootstrap
         if (httpOptions != null)
         {
             // Build HttpClient from HttpDownloadOptions (SSL, proxy, auth, timeouts)
+            // Note: when httpOptions is provided, the httpClient parameter is NOT used.
             var handler = httpOptions.BuildHandler();
             var client = new HttpClient(handler, disposeHandler: true)
             {

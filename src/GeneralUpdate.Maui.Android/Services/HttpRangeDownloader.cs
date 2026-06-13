@@ -7,7 +7,7 @@ using GeneralUpdate.Maui.Android.Utilities;
 namespace GeneralUpdate.Maui.Android.Services;
 
 /// <summary>
-/// HTTP downloader that supports range-based resume, authentication, retry, and progress statistics.
+/// HTTP downloader that supports range-based resume, authentication, and progress statistics.
 /// </summary>
 public sealed class HttpRangeDownloader : IUpdateDownloader, IDisposable
 {
@@ -135,11 +135,15 @@ public sealed class HttpRangeDownloader : IUpdateDownloader, IDisposable
     /// <summary>
     /// Applies authentication to the HTTP request.
     /// Per-package auth takes precedence over global auth.
+    /// When <see cref="UpdatePackageInfo.AuthScheme"/> is explicitly set,
+    /// only per-package credentials are used (no fallback to global).
+    /// When AuthScheme is null, the global provider is used if configured.
     /// </summary>
     private async Task ApplyAuthAsync(HttpRequestMessage request, UpdatePackageInfo packageInfo, CancellationToken cancellationToken)
     {
         IHttpAuthProvider? provider = null;
 
+        // Per-package auth takes full precedence when explicitly set
         if (packageInfo.AuthScheme.HasValue)
         {
             provider = HttpAuthProviderFactory.Create(
@@ -148,10 +152,13 @@ public sealed class HttpRangeDownloader : IUpdateDownloader, IDisposable
                 packageInfo.AuthSecretKey,
                 packageInfo.BasicUsername,
                 packageInfo.BasicPassword);
-        }
 
-        if ((provider is null || provider is NoOpAuthProvider) && _globalAuthProvider != null)
+            // When per-package scheme is set, do NOT fall back to global,
+            // even if credentials are missing (NoOpAuthProvider).
+        }
+        else
         {
+            // Only fall back to global when no per-package scheme is specified
             provider = _globalAuthProvider;
         }
 

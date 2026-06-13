@@ -5,7 +5,7 @@ namespace GeneralUpdate.Maui.Android.Models;
 
 /// <summary>
 /// Configures HTTP transport behavior for update downloads:
-/// SSL/TLS certificate validation, timeouts, proxy, retry, and authentication.
+/// SSL/TLS certificate validation, proxy, timeouts, and authentication.
 /// <para>
 /// When provided to <see cref="Services.GeneralUpdateBootstrap.CreateDefault"/>,
 /// the library constructs an internal <see cref="HttpClient"/> from these settings.
@@ -21,12 +21,6 @@ public sealed record HttpDownloadOptions
     /// in development environments only.
     /// </summary>
     public ISslValidationPolicy? SslValidationPolicy { get; init; }
-
-    /// <summary>
-    /// Timeout for individual HTTP requests (HEAD probes, etc.).
-    /// Default is 30 seconds.
-    /// </summary>
-    public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Overall timeout for the entire download operation.
@@ -47,22 +41,10 @@ public sealed record HttpDownloadOptions
     public bool UseProxy { get; init; }
 
     /// <summary>
-    /// Maximum number of retry attempts for transient failures.
-    /// Default is 3 (meaning 1 initial attempt + 2 retries).
-    /// Set to 1 to disable retry.
-    /// </summary>
-    public int MaxRetryAttempts { get; init; } = 3;
-
-    /// <summary>
-    /// Base delay for exponential backoff retry.
-    /// Actual delays are: baseDelay * 2^attempt.
-    /// Default is 1 second.
-    /// </summary>
-    public TimeSpan RetryBaseDelay { get; init; } = TimeSpan.FromSeconds(1);
-
-    /// <summary>
     /// Global authentication provider applied to all download requests.
     /// Per-package authentication on <see cref="UpdatePackageInfo"/> takes precedence.
+    /// When <see cref="UpdatePackageInfo.AuthScheme"/> is explicitly set,
+    /// per-package credentials are used exclusively (no fallback to global).
     /// </summary>
     public IHttpAuthProvider? AuthProvider { get; init; }
 
