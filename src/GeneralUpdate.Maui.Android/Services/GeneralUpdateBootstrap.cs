@@ -1,4 +1,5 @@
 using GeneralUpdate.Maui.Android.Abstractions;
+using GeneralUpdate.Maui.Android.Models;
 using GeneralUpdate.Maui.Android.Platform.Android;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,11 +34,42 @@ public static class GeneralUpdateBootstrap
         return services;
     }
 
-    public static IAndroidBootstrap CreateDefault(HttpClient? httpClient = null, IUpdateLogger? logger = null)
+    /// <summary>
+    /// Creates a default <see cref="IAndroidBootstrap"/> with built-in service implementations.
+    /// </summary>
+    /// <param name="httpClient">Optional external HttpClient. Ignored when <paramref name="httpOptions"/> is provided.</param>
+    /// <param name="logger">Optional logger.</param>
+    /// <param name="httpOptions">
+    /// Optional HTTP configuration (SSL, proxy, auth, timeouts).
+    /// When set, an internal HttpClient is constructed from these options
+    /// and <paramref name="httpClient"/> is not used.
+    /// </param>
+    public static IAndroidBootstrap CreateDefault(
+        HttpClient? httpClient = null,
+        IUpdateLogger? logger = null,
+        HttpDownloadOptions? httpOptions = null)
     {
-        var client = httpClient ?? new HttpClient();
+        if (httpOptions != null)
+        {
+            // Build HttpClient from HttpDownloadOptions (SSL, proxy, auth, timeouts)
+            // Note: when httpOptions is provided, the httpClient parameter is NOT used.
+            var handler = httpOptions.BuildHandler();
+            var client = new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = System.Threading.Timeout.InfiniteTimeSpan
+            };
+            return new AndroidBootstrap(
+                new HttpRangeDownloader(client, httpOptions),
+                new Sha256Validator(),
+                new AndroidApkInstaller(),
+                new UpdateFileStore(),
+                logger);
+        }
+
+        // Legacy path: bare HttpClient
+        var usedClient = httpClient ?? new HttpClient();
         return new AndroidBootstrap(
-            new HttpRangeDownloader(client),
+            new HttpRangeDownloader(usedClient),
             new Sha256Validator(),
             new AndroidApkInstaller(),
             new UpdateFileStore(),
