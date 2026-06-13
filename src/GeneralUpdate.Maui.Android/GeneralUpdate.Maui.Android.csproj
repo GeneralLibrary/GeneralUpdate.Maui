@@ -8,7 +8,16 @@
     <Authors>GeneralLibrary</Authors>
     <Description>GeneralUpdate.Maui.Android is a UI-less Android auto-update core component for .NET MAUI.</Description>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <PackageIcon>GeneralUpdate128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../imgs/GeneralUpdate128.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
