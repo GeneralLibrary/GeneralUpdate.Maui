@@ -8,10 +8,10 @@ on:
         required: true
         type: string
       push-to-nuget:
-        description: 'Push package to NuGet.org'
+        description: 'Push package to NuGet.org (requires OIDC trust policy configured)'
         required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
