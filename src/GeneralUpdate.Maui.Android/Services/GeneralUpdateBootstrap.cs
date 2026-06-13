@@ -1,4 +1,5 @@
 using GeneralUpdate.Maui.Android.Abstractions;
+using GeneralUpdate.Maui.Android.Models;
 using GeneralUpdate.Maui.Android.Platform.Android;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,11 +34,31 @@ public static class GeneralUpdateBootstrap
         return services;
     }
 
-    public static IAndroidBootstrap CreateDefault(HttpClient? httpClient = null, IUpdateLogger? logger = null)
+    public static IAndroidBootstrap CreateDefault(
+        HttpClient? httpClient = null,
+        IUpdateLogger? logger = null,
+        HttpDownloadOptions? httpOptions = null)
     {
-        var client = httpClient ?? new HttpClient();
+        if (httpOptions != null)
+        {
+            // Build HttpClient from HttpDownloadOptions (SSL, proxy, auth, timeouts)
+            var handler = httpOptions.BuildHandler();
+            var client = new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = System.Threading.Timeout.InfiniteTimeSpan
+            };
+            return new AndroidBootstrap(
+                new HttpRangeDownloader(client, httpOptions),
+                new Sha256Validator(),
+                new AndroidApkInstaller(),
+                new UpdateFileStore(),
+                logger);
+        }
+
+        // Legacy path: bare HttpClient
+        var usedClient = httpClient ?? new HttpClient();
         return new AndroidBootstrap(
-            new HttpRangeDownloader(client),
+            new HttpRangeDownloader(usedClient),
             new Sha256Validator(),
             new AndroidApkInstaller(),
             new UpdateFileStore(),

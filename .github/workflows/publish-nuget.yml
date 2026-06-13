@@ -1,0 +1,99 @@
+name: Publish NuGet
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'NuGet package version (SemVer 2.0, e.g. 1.0.0, 1.0.0-beta.1)'
+        required: true
+        type: string
+      push-to-nuget:
+        description: 'Push package to NuGet.org'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate SemVer 2.0
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$' > /dev/null; then
+            echo "::error::Invalid SemVer 2.0 version: '${{ inputs.version }}'"
+            exit 1
+          fi
+          echo "Version ${{ inputs.version }} is valid SemVer 2.0"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Restore
+        run: dotnet restore src/GeneralUpdate.Maui.sln
+
+      - name: Build
+        run: dotnet build src/GeneralUpdate.Maui.sln --configuration Release --no-restore /p:Version=${{ inputs.version }}
+
+      - name: Run tests
+        run: dotnet test src/GeneralUpdate.Maui.sln --configuration Release --no-restore --no-build /p:Version=${{ inputs.version }}
+
+      - name: Pack NuGet
+        run: dotnet pack src/GeneralUpdate.Maui.sln --configuration Release --no-restore --no-build -o artifacts /p:Version=${{ inputs.version }}
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Create git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          TAG="v${{ inputs.version }}"
+          git tag --force "$TAG"
+          git push --force-with-lease origin "$TAG"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ inputs.version }}"
+          if gh release view "$TAG" --json tagName &>/dev/null; then
+            gh release delete "$TAG" --yes
+          fi
+          gh release create "$TAG" \
+            artifacts/*.nupkg \
+            --title "$TAG" \
+            --generate-notes \
+            --verify-tag
+
+      - name: NuGet login via Trusted Publishing (OIDC → temp API key)
+        if: ${{ inputs.push-to-nuget == true }}
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: juster.chu
+
+      - name: Push NuGet package to NuGet.org
+        if: ${{ inputs.push-to-nuget == true }}
+        run: |
+          dotnet nuget push artifacts/*.nupkg \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+            --skip-duplicate

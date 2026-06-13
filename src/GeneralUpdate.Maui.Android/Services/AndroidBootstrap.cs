@@ -8,7 +8,7 @@ namespace GeneralUpdate.Maui.Android.Services;
 /// <summary>
 /// Orchestrates update discovery, package download, integrity validation, and APK installation triggering.
 /// </summary>
-public sealed class AndroidBootstrap : IAndroidBootstrap
+public sealed class AndroidBootstrap : IAndroidBootstrap, IDisposable
 {
     private const string UpdateInProgressMessage = "An update execution is already in progress.";
     private readonly IUpdateDownloader _downloader;
@@ -221,5 +221,19 @@ public sealed class AndroidBootstrap : IAndroidBootstrap
             OperationCanceledException => UpdateFailureReason.Canceled,
             _ => UpdateFailureReason.Unknown
         };
+    }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        if (_downloader is IDisposable disposableDownloader)
+        {
+            disposableDownloader.Dispose();
+        }
+
+        _disposed = true;
     }
 }
