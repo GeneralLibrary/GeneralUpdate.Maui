@@ -9,6 +9,8 @@
 
 ---
 
+![](./imgs/LOGO白1.png)
+
 ## Introduction
 
 `GeneralUpdate.Maui` is an update capabilities repository for .NET MAUI applications. Its current core module, `GeneralUpdate.Maui.Android`, provides a UI-free Android auto-update orchestration pipeline targeting `net10.0-android` for .NET MAUI apps.

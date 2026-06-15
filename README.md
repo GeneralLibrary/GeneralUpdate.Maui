@@ -9,6 +9,8 @@
 
 ---
 
+![](./imgs/LOGO白1.png)
+
 ## 项目简介
 
 `GeneralUpdate.Maui` 是面向 .NET MAUI 应用的更新能力仓库。当前核心模块为 `GeneralUpdate.Maui.Android`，提供 Android 平台自动更新流程编排能力（无 UI），适配 `net10.0-android`，适用于 .NET MAUI 应用。
